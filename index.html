@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Government Application Form</title>
+    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@latest"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        .container {
+            max-width: 500px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        .upload-btn {
+            display: inline-block;
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: #fff;
+            text-align: center;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .upload-btn:hover {
+            background-color: #0056b3;
+        }
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            border: 1px solid #ccc;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            z-index: 1000;
+        }
+        .popup.active {
+            display: block;
+        }
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+        .overlay.active {
+            display: block;
+        }
+        button {
+            margin-top: 10px;
+        }
+        img {
+            max-width: 100%;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Government Application Form</h2>
+    <form id="application-form">
+        <div class="form-group">
+            <label for="file-upload">Upload Passport Size Photograph</label>
+            <label class="upload-btn" for="file-upload">Choose Image</label>
+            <input type="file" id="file-upload" accept="image/*" required>
+            <div id="message" style="color: red; font-size: 0.9em;"></div>
+        </div>
+        <div id="preview"></div>
+        <button type="submit" style="margin-top: 15px;">Submit Form</button>
+    </form>
+</div>
+
+<!-- Popup -->
+<div class="overlay" id="overlay"></div>
+<div class="popup" id="popup">
+    <p>Image size exceeds 200KB. The file will be compressed automatically.</p>
+    <button id="popup-ok">OK</button>
+</div>
+
+<script>
+    const fileInput = document.getElementById('file-upload');
+    const message = document.getElementById('message');
+    const preview = document.getElementById('preview');
+    const form = document.getElementById('application-form');
+
+    const popup = document.getElementById('popup');
+    const overlay = document.getElementById('overlay');
+    const popupOk = document.getElementById('popup-ok');
+
+    let compressedFile = null; // To store the final file for form submission
+
+    // Handle file selection
+    fileInput.addEventListener('change', async (event) => {
+        const file = event.target.files[0];
+
+        if (!file) {
+            message.textContent = "No file selected.";
+            return;
+        }
+
+        // Check file size
+        if (file.size > 200 * 1024) {
+            showPopup();
+            try {
+                compressedFile = await compressImage(file, 200);
+                previewImage(compressedFile);
+                message.textContent = "Image compressed and ready to upload.";
+            } catch (error) {
+                message.textContent = "Error compressing the image.";
+                console.error(error);
+            }
+        } else {
+            compressedFile = file; // No need to compress
+            previewImage(file);
+            message.textContent = "Image ready to upload.";
+        }
+    });
+
+    // Compress the image
+    async function compressImage(file, maxSizeKB) {
+        const options = {
+            maxSizeMB: maxSizeKB / 1024,
+            useWebWorker: true,
+        };
+        return await imageCompression(file, options);
+    }
+
+    // Preview the image
+    function previewImage(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            preview.innerHTML = '';
+            preview.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // Show popup
+    function showPopup() {
+        popup.classList.add('active');
+        overlay.classList.add('active');
+    }
+
+    // Hide popup
+    popupOk.addEventListener('click', () => {
+        popup.classList.remove('active');
+        overlay.classList.remove('active');
+    });
+
+    // Form submission
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        if (!compressedFile) {
+            message.textContent = "Please upload a valid image.";
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('image', compressedFile);
+
+        try {
+            // Simulate backend upload
+            const response = await fetch('https://httpbin.org/post', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                throw new Error('Error uploading file.');
+            }
+
+            const result = await response.json();
+            console.log('Server response:', result);
+            alert("Form submitted successfully!");
+        } catch (error) {
+            alert("Error submitting the form.");
+            console.error(error);
+        }
+    });
+</script>
+
+</body>
+</html>
